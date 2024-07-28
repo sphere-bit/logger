@@ -15,7 +15,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: 'http://localhost:3000', // frontend port
     methods: ['GET', 'POST'],
   },
 });
@@ -112,7 +112,7 @@ app.get('/events', (req, res) => {
 // Endpoint to serve the positions.json file
 app.get('/positions.json', (req, res) => {
   fs.readFile(
-    join(__dirname, 'public', 'positions.json'),
+    join(__dirname, 'src', 'positions.json'),
     'utf8',
     (err, data) => {
       if (err) {
@@ -126,9 +126,9 @@ app.get('/positions.json', (req, res) => {
 // Endpoint to save the positions
 app.post('/save-positions', (req, res) => {
   const newPositions = req.body;
-
+  console.log('saved')
   fs.readFile(
-    join(__dirname, 'public', 'positions.json'),
+    join(__dirname, 'src', 'positions.json'),
     'utf8',
     (err, data) => {
       if (err) {
@@ -156,7 +156,7 @@ app.post('/save-positions', (req, res) => {
       }
 
       fs.writeFile(
-        join(__dirname, 'public', 'positions.json'),
+        join(__dirname, 'src', 'positions.json'),
         JSON.stringify(positions, null, 2),
         (err) => {
           if (err) {
@@ -172,7 +172,7 @@ app.post('/save-positions', (req, res) => {
 app.post('/save-data', (req, res) => {
   const { data, directory } = req.body;
 
-  const savePath = join(__dirname, 'public', directory, 'sensorData.json');
+  const savePath = join(__dirname, 'src', directory, 'sensorData.json');
   fs.writeFile(savePath, JSON.stringify({ data }, null, 2), 'utf8', (err) => {
     if (err) {
       return res.status(500).send('Failed to save sensor data');
