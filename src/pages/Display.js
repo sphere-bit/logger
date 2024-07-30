@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import FileSaver from 'file-saver';
 import SidePanel from '../components/SidePanel.js';
-import ThermalBox from '../components/ThermalBox.js';
+// import ThermalBox from '../components/ThermalBox.js';
 import ChartTemperature from '../components/ChartTemperature.js';
 import SensorItem from '../components/SensorItem.js';
 import useDraggable from '../hooks/useDraggable.js';
+import { Button } from '@mui/material';
 
 const socket = io(`http://localhost:${8081}`);
 
@@ -64,16 +65,6 @@ const Display = () => {
       sensorData[`sensor${index + 1}`] = temperature;
     });
     return sensorData;
-  };
-
-  const handleToggleLogging = () => {
-    setIsLogging(!isLogging);
-    if (!isLogging && fileName) {
-      const blob = new Blob([JSON.stringify(data)], {
-        type: 'text/plain;charset=utf-8',
-      });
-      FileSaver.saveAs(blob, `${fileName}.txt`);
-    }
   };
 
   const handleAdjustPositions = () => {
@@ -139,7 +130,7 @@ const Display = () => {
       const updatedPositions = {};
       Array.from({ length: 43 }, (_, index) => {
         updatedPositions[`b${index + 1}`] = {
-          top: index * 16, // Update top value based on index
+          top: index * 22, // Update top value based on index
           left: 0, // Default left value
         };
       });
@@ -201,56 +192,60 @@ const Display = () => {
     document.getElementById('toggle-save-button').textContent =
       'Start Logging to File';
     socket.off('serial-data', collectSensorData);
-    saveDataToFile();
+    await saveDataToFile();
   };
 
   return (
-    <div>
-      <h2>Display</h2>
-      <button
-        id='toggle-button'
-        onClick={() => {
-          handleAdjustPositions();
-        }}
-      >
-        {isAdjustingPositions
-          ? 'Lock Sensor Positions'
-          : 'Adjust Sensor Positions'}
-      </button>
-      <button id='reset-button' onClick={resetSensorPositions}>
-        Reset Positions
-      </button>
-      <input id='file-name' type='text' placeholder='Enter file name' />
-      <button
-        id='toggle-save-button'
-        onClick={() => {
-          if (isSavingData) {
-            stopSavingData();
-          } else {
-            startSavingData();
-          }
-        }}
-      >
-        Start Logging to File
-      </button>
+    <div className='main-container'>
       <div className='flex-container'>
-        <SidePanel
-          onToggleLogging={handleToggleLogging}
-          fileName={fileName}
-          setFileName={setFileName}
-        />
-        <ThermalBox sensors={data} />
+        <Button
+          id='toggle-button'
+          variant='contained'
+          disableElevation
+          onClick={() => {
+            handleAdjustPositions();
+          }}
+        >
+          {isAdjustingPositions
+            ? 'Lock Sensor Positions'
+            : 'Adjust Sensor Positions'}
+        </Button>
+        <Button
+          id='reset-button'
+          variant='contained'
+          disableElevation
+          onClick={resetSensorPositions}
+        >
+          Reset Positions
+        </Button>
+        <input id='file-name' type='text' placeholder='Enter file name' />
+        <Button
+          id='toggle-save-button'
+          variant='contained'
+          disableElevation
+          onClick={() => {
+            if (isSavingData) {
+              stopSavingData();
+            } else {
+              startSavingData();
+            }
+          }}
+        >
+          Start Logging to File
+        </Button>
       </div>
-      <div
-        className='sensor-container'
-        style={{ position: 'absolute', top: 0, left: 0 }}
-      >
+      <img
+        src='images/thermalBox.png'
+        alt='Thermal Box'
+        className='thermal-box-img'
+      />
+      <div className='sensor-container'>
         {Array.from({ length: 43 }, (_, index) => (
           <SensorItem
             key={index}
             id={`b${index + 1}`}
             temperature={sensorTemps[`sensor${index + 1}`]}
-            top={positions[`b${index + 1}`]?.top || index * 15}
+            top={positions[`b${index + 1}`]?.top}
             left={positions[`b${index + 1}`]?.left || 0}
             onMouseDown={
               isAdjustingPositions
@@ -261,6 +256,7 @@ const Display = () => {
           />
         ))}
       </div>
+      
       <ChartTemperature
         sensorTemps={sensorTemps}
         selectedSensors={Array.from(selectedSensors)}

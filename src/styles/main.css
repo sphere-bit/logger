@@ -7,14 +7,14 @@
   font-weight: 800;
   font-family: Arial, Helvetica, sans-serif;
   top: 210px;
-  font-size: 10px;
+  font-size: 12px;
   left: 320px;
-  background: rgba(255, 255, 255, 0.50);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 5px;
-  border: 1px dotted rgba(0, 0, 0, 0.537);
+  border: 1px solid rgba(0, 0, 0, 0.537);
   padding: 7px;
-  width: 72px;
-  height: 1px;
+  width: auto;
+  height: 3px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -30,13 +30,6 @@
   cursor: grabbing;
 }
 
-
-h2 {
-  font-family: Arial;
-  font-size: 2.5rem;
-  text-align: center;
-}
-
 .thermal-box {
   display: flex;
   position: relative;
@@ -45,8 +38,11 @@ h2 {
 }
 
 .thermal-box-img {
+  margin-left: 80px;
+  margin-top: 30px;
   width: 1200px;
   height: 792px;
+  position: sticky;
   border: black .5px solid;
 }
 
@@ -67,10 +63,6 @@ img {
   -webkit-touch-callout: none;
 }
 
-.flex-container {
-  display: flex;
-}
-
 .side-panel {
   border: 1px solid black;
   background-color: #86afc7;
@@ -82,4 +74,28 @@ img {
 
 #sensors {
   position: relative;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-container {
+  display: flex;
+  gap: 5px;
+  justify-content: left;
+}
+
+.thermal-box-container {
+  position: relative;
+  width: 100%;
+  height: auto;
+}
+
+.sensor-container {
+  top: 120px;
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
 }

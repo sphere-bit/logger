@@ -1,16 +1,90 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import '../styles/nav.css';
+import { Link, useLocation } from 'react-router-dom';
+import { Button, Box } from '@mui/material';
 
 const Navbar = () => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
   return (
-    <nav className="nav-bar">
-      <Link to="/channels" className="nav-button">Channels</Link>
-      <div className="separator"></div>
-      <Link to="/logging" className="nav-button">Logging</Link>
-      <div className="separator"></div>
-      <Link to="/display" className="nav-button">Display</Link>
-    </nav>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        backgroundColor: '#f0f0f0',
+        padding: '10px',
+        borderBottom: '1px solid #ddd',
+        gap: 0, // No gap between buttons
+      }}
+    >
+      <Button
+        component={Link}
+        to="/channels"
+        sx={{
+          textTransform: 'none',
+          color: currentPath === '/channels' ? '#fff' : 'inherit',
+          backgroundColor: currentPath === '/channels' ? '#007bff' : 'transparent',
+          padding: '8px 16px',
+          margin: 0,
+          '&:hover': {
+            textDecoration: 'none',
+            backgroundColor: currentPath === '/channels' ? '#0056b3' : '#ddd',
+          },
+        }}
+      >
+        Channels
+      </Button>
+      <Box
+        sx={{
+          width: '1px',
+          height: '24px', // Adjust height to fit the button
+          backgroundColor: '#ddd',
+          margin: '0 8px', // Adjust spacing around the separator
+        }}
+      />
+      <Button
+        component={Link}
+        to="/logging"
+        sx={{
+          textTransform: 'none',
+          color: currentPath === '/logging' ? '#fff' : 'inherit',
+          backgroundColor: currentPath === '/logging' ? '#007bff' : 'transparent',
+          padding: '8px 16px',
+          margin: 0,
+          '&:hover': {
+            textDecoration: 'none',
+            backgroundColor: currentPath === '/logging' ? '#0056b3' : '#ddd',
+          },
+        }}
+      >
+        Logging
+      </Button>
+      <Box
+        sx={{
+          width: '1px',
+          height: '24px', // Adjust height to fit the button
+          backgroundColor: '#ddd',
+          margin: '0 8px', // Adjust spacing around the separator
+        }}
+      />
+      <Button
+        component={Link}
+        to="/display"
+        sx={{
+          textTransform: 'none',
+          color: currentPath === '/display' ? '#fff' : 'inherit',
+          backgroundColor: currentPath === '/display' ? '#007bff' : 'transparent',
+          padding: '8px 16px',
+          margin: 0,
+          '&:hover': {
+            textDecoration: 'none',
+            backgroundColor: currentPath === '/display' ? '#0056b3' : '#ddd',
+          },
+        }}
+      >
+        Display
+      </Button>
+    </Box>
   );
 };
 

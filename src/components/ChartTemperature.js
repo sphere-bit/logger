@@ -79,7 +79,6 @@ const ChartTemperature = ({ sensorTemps, selectedSensors }) => {
 
   return (
     <div className="chart-container">
-      <h2>DS18B20 Temperature Sensor</h2>
       <div id="chart-temperature" ref={chartRef}></div>
     </div>
   );
