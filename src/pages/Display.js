@@ -19,6 +19,10 @@ const Display = () => {
   const { positions, setPositions, onMouseDown } =
     useDraggable(isAdjustingPositions);
 
+  const [isSavingData, setIsSavingData] = useState(false);
+  const [fileHandle, setFileHandle] = useState(null);
+  const [sensorData, setSensorData] = useState([]);
+
   useEffect(() => {
     // Load initial positions
     const loadPositions = async () => {
@@ -106,27 +110,26 @@ const Display = () => {
     setData(seriesData);
   };
 
-const savePositions = async (data) => {
-  try {
-    const response = await fetch('http://localhost:8081/save-positions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Network response was not ok: ${response.statusText}`);
-    }
-    
-    const result = await response.text();
-    console.log('Positions saved:', result);
-  } catch (error) {
-    console.error('Error saving positions:', error);
-  }
-};
+  const savePositions = async (data) => {
+    try {
+      const response = await fetch('http://localhost:8081/save-positions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.statusText}`);
+      }
+
+      const result = await response.text();
+      console.log('Positions saved:', result);
+    } catch (error) {
+      console.error('Error saving positions:', error);
+    }
+  };
 
   const resetSensorPositions = () => {
     if (
@@ -148,6 +151,59 @@ const savePositions = async (data) => {
     }
   };
 
+  const collectSensorData = (dataString) => {
+    setSensorData((prevData) => [...prevData, dataString]);
+  };
+
+  const saveDataToFile = async () => {
+    if (!fileHandle) {
+      console.error('No file handle available. Cannot save data.');
+      return;
+    }
+    try {
+      const writableStream = await fileHandle.createWritable();
+      await writableStream.write(sensorData.join('\n'));
+      await writableStream.close();
+    } catch (error) {
+      console.error('Error saving data:', error);
+    }
+  };
+
+  const startSavingData = async () => {
+    const fileName =
+      document.getElementById('file-name').value.trim() ||
+      `sensordata_${new Date().toISOString().replace(/[:.-]/g, '_')}.txt`;
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: 'Text files',
+            accept: {
+              'text/plain': ['.txt'],
+            },
+          },
+        ],
+      });
+      setIsSavingData(true);
+      document.getElementById('toggle-save-button').textContent =
+        'Pause Logging to File';
+      setFileHandle(handle);
+      setSensorData([]); // Clear previous data
+      socket.on('serial-data', collectSensorData);
+    } catch (error) {
+      console.error('Error selecting file:', error);
+    }
+  };
+
+  const stopSavingData = async () => {
+    setIsSavingData(false);
+    document.getElementById('toggle-save-button').textContent =
+      'Start Logging to File';
+    socket.off('serial-data', collectSensorData);
+    saveDataToFile();
+  };
+
   return (
     <div>
       <h2>Display</h2>
@@ -163,6 +219,19 @@ const savePositions = async (data) => {
       </button>
       <button id='reset-button' onClick={resetSensorPositions}>
         Reset Positions
+      </button>
+      <input id='file-name' type='text' placeholder='Enter file name' />
+      <button
+        id='toggle-save-button'
+        onClick={() => {
+          if (isSavingData) {
+            stopSavingData();
+          } else {
+            startSavingData();
+          }
+        }}
+      >
+        Start Logging to File
       </button>
       <div className='flex-container'>
         <SidePanel
