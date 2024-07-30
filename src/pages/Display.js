@@ -74,7 +74,7 @@ const Display = () => {
 
   const handleAdjustPositions = () => {
     if (isAdjustingPositions) {
-      savePositions();
+      savePositions(positions);
     }
     setIsAdjustingPositions(!isAdjustingPositions);
   };
@@ -106,17 +106,46 @@ const Display = () => {
     setData(seriesData);
   };
 
-  const savePositions = () => {
-    fetch(`http://localhost:8081/save-positions`, {
+const savePositions = async (data) => {
+  try {
+    const response = await fetch('http://localhost:8081/save-positions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(positions),
-    })
-      .then((response) => response.text())
-      .then((data) => console.log('saved'))
-      .catch((error) => console.error('Error:', error));
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Network response was not ok: ${response.statusText}`);
+    }
+    
+    const result = await response.text();
+    console.log('Positions saved:', result);
+  } catch (error) {
+    console.error('Error saving positions:', error);
+  }
+};
+
+
+  const resetSensorPositions = () => {
+    if (
+      window.confirm('Are you sure you want to reset the sensor positions?')
+    ) {
+      // Calculate new positions based on default positions
+      const updatedPositions = {};
+      Array.from({ length: 43 }, (_, index) => {
+        updatedPositions[`b${index + 1}`] = {
+          top: index * 16, // Update top value based on index
+          left: 0, // Default left value
+        };
+      });
+
+      setPositions(updatedPositions);
+      savePositions(updatedPositions);
+    } else {
+      console.log('Reset canceled');
+    }
   };
 
   return (
@@ -132,14 +161,7 @@ const Display = () => {
           ? 'Lock Sensor Positions'
           : 'Adjust Sensor Positions'}
       </button>
-      <button
-        id='reset-button'
-        onClick={() => {
-          if (alert('Are you sure you want to reset the sensor positions?')) {
-            // resetSensorPositions();
-          }
-        }}
-      >
+      <button id='reset-button' onClick={resetSensorPositions}>
         Reset Positions
       </button>
       <div className='flex-container'>
