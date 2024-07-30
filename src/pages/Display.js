@@ -40,8 +40,9 @@ const Display = () => {
     loadPositions();
     socket.on('serial-data', (dataString) => {
       const parsedData = parseSensorData(dataString);
-      console.log(dataString);
+      // console.log(dataString);
       setSensorTemps((prevTemps) => ({ ...prevTemps, ...parsedData }));
+      plotTemperature(parsedData);
     });
 
     return () => {
@@ -76,6 +77,33 @@ const Display = () => {
       savePositions();
     }
     setIsAdjustingPositions(!isAdjustingPositions);
+  };
+
+  const handleSensorClick = (id) => {
+    console.log(`clicked ${id}`);
+    setSelectedSensors((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
+  };
+
+  const plotTemperature = (sensorData) => {
+    const seriesData = Array.from(selectedSensors).map((sensorKey) => {
+      const sensorName = sensorKey.replace('b', 'sensor');
+      return {
+        name: sensorName,
+        data: data.map(([time, temps]) => [time, temps[sensorName]]),
+        type: 'line',
+        color: '#FF0000', // You can set a color here
+      };
+    });
+
+    setData(seriesData);
   };
 
   const savePositions = () => {
@@ -138,10 +166,14 @@ const Display = () => {
                 ? (e) => onMouseDown(e, `b${index + 1}`)
                 : null
             }
+            onClick={() => handleSensorClick(`b${index + 1}`)}
           />
         ))}
       </div>
-      <ChartTemperature data={data} />
+      <ChartTemperature
+        sensorTemps={sensorTemps}
+        selectedSensors={Array.from(selectedSensors)}
+      />
     </div>
   );
 };

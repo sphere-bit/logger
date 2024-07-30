@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SensorItem = ({ id, temperature, top, left, onMouseDown }) => {
+const SensorItem = ({ id, temperature, top, left, onMouseDown, onClick }) => {
   return (
     <div
       id={id}
@@ -15,6 +15,11 @@ const SensorItem = ({ id, temperature, top, left, onMouseDown }) => {
         cursor: 'pointer',
       }}
       onMouseDown={onMouseDown}
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent interference from other elements
+        console.log(`Sensor ${id} clicked`);
+        onClick();
+      }}
     >
       {temperature ? `${temperature}°C` : '%TEMP%'}
     </div>
