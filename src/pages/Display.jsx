@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import FileSaver from 'file-saver';
-import SidePanel from '../components/SidePanel.js';
-// import ThermalBox from '../components/ThermalBox.js';
-import ChartTemperature from '../components/ChartTemperature.js';
-import SensorItem from '../components/SensorItem.js';
-import useDraggable from '../hooks/useDraggable.js';
+import SidePanel from '../components/SidePanel.jsx';
+// import ThermalBox from '../components/ThermalBox.jsx';
+import ChartTemperature from '../components/ChartTemperature.jsx';
+import SensorItem from '../components/SensorItem.jsx';
+import useDraggable from '../hooks/useDraggable.jsx';
 import { Button } from '@mui/material';
+import SideToolbar from '../components/SideToolbar.jsx';
 
 const socket = io(`http://localhost:${8081}`);
 
@@ -194,10 +195,11 @@ const Display = () => {
     socket.off('serial-data', collectSensorData);
     await saveDataToFile();
   };
-
+  
   return (
     <div className='main-container'>
       <div className='flex-container'>
+      
         <Button
           id='toggle-button'
           variant='contained'
@@ -256,7 +258,7 @@ const Display = () => {
           />
         ))}
       </div>
-      
+
       <ChartTemperature
         sensorTemps={sensorTemps}
         selectedSensors={Array.from(selectedSensors)}

@@ -1,5 +1,4 @@
 import React from 'react';
-import '../styles/main.css';
 
 const SidePanel = ({ onAdjustPositions, onResetPositions, onToggleLogging, fileName, setFileName }) => {
   return (

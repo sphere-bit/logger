@@ -19,11 +19,12 @@ const Navbar = () => {
     >
       <Button
         component={Link}
-        to="/channels"
+        to='/channels'
         sx={{
           textTransform: 'none',
           color: currentPath === '/channels' ? '#fff' : 'inherit',
-          backgroundColor: currentPath === '/channels' ? '#007bff' : 'transparent',
+          backgroundColor:
+            currentPath === '/channels' ? '#007bff' : 'transparent',
           padding: '8px 16px',
           margin: 0,
           '&:hover': {
@@ -44,11 +45,12 @@ const Navbar = () => {
       />
       <Button
         component={Link}
-        to="/logging"
+        to='/logging'
         sx={{
           textTransform: 'none',
           color: currentPath === '/logging' ? '#fff' : 'inherit',
-          backgroundColor: currentPath === '/logging' ? '#007bff' : 'transparent',
+          backgroundColor:
+            currentPath === '/logging' ? '#007bff' : 'transparent',
           padding: '8px 16px',
           margin: 0,
           '&:hover': {
@@ -69,11 +71,12 @@ const Navbar = () => {
       />
       <Button
         component={Link}
-        to="/display"
+        to='/display'
         sx={{
           textTransform: 'none',
           color: currentPath === '/display' ? '#fff' : 'inherit',
-          backgroundColor: currentPath === '/display' ? '#007bff' : 'transparent',
+          backgroundColor:
+            currentPath === '/display' ? '#007bff' : 'transparent',
           padding: '8px 16px',
           margin: 0,
           '&:hover': {
@@ -83,6 +86,24 @@ const Navbar = () => {
         }}
       >
         Display
+      </Button>
+      <Button
+        component={Link}
+        to='/screen'
+        sx={{
+          textTransform: 'none',
+          color: currentPath === '/screen' ? '#fff' : 'inherit',
+          backgroundColor:
+            currentPath === '/screen' ? '#007bff' : 'transparent',
+          padding: '8px 16px',
+          margin: 0,
+          '&:hover': {
+            textDecoration: 'none',
+            backgroundColor: currentPath === '/screen' ? '#0056b3' : '#ddd',
+          },
+        }}
+      >
+        Screen
       </Button>
     </Box>
   );

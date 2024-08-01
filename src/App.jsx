@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Channels from './pages/Channels.js';
-import Logging from './pages/Logging.js';
-import Display from './pages/Display.js';
-import Navbar from './components/Navbar.js';
+import Channels from './pages/Channels.jsx';
+import Logging from './pages/Logging.jsx';
+import Display from './pages/Display.jsx';
+import Navbar from './components/Navbar.jsx';
+import Screen from './pages/Screen.jsx';
 
 const App = () => {
   return (
@@ -15,6 +16,7 @@ const App = () => {
           <Route path='/channels' element={<Channels />} />
           <Route path='/logging' element={<Logging />} />
           <Route path='/display' element={<Display />} />
+          <Route path='/screen' element={<Screen />} />
         </Routes>
       </BrowserRouter>
     </div>

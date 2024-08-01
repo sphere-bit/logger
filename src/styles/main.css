@@ -83,7 +83,6 @@ img {
 
 .flex-container {
   display: flex;
-  gap: 5px;
   justify-content: left;
 }
 
@@ -98,4 +97,50 @@ img {
   position: absolute;
   display: flex;
   flex-wrap: wrap;
+}
+
+.main-container {
+  display: flex;
+}
+
+.side-toolbar {
+  width: 80px;
+  border-right: 1px solid #ddd;
+}
+
+.whiteboard-container {
+  flex-grow: 1;
+  background-color: antiquewhite;
+  position: relative;
+}
+
+.right-side-panel {
+  width: 300px;
+  border-left: 1px solid #ddd;
+  position: absolute;
+  right: 0;
+  background-color: #fcfcfc;
+  top: 0;
+  height: 100%;
+}
+
+/* YourStyles.css */
+/* YourStyles.css */
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Auto-adjust column width */
+  gap: 16px; /* Space between items */
+  padding: 16px;
+}
+
+/* Optional: Add a max-width to limit the grid's maximum width */
+.gridContainer {
+  max-width: 100%; /* Adjust this as needed */
+}
+
+.icon-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
