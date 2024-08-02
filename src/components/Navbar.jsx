@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button, Box } from '@mui/material';
+import '../index.css';
 
 const Navbar = () => {
   const location = useLocation();
@@ -14,6 +15,7 @@ const Navbar = () => {
         backgroundColor: '#f0f0f0',
         padding: '10px',
         borderBottom: '1px solid #ddd',
+        zIndex: 999,
         gap: 0, // No gap between buttons
       }}
     >
@@ -86,7 +88,15 @@ const Navbar = () => {
         }}
       >
         Display
-      </Button>
+      </Button>{' '}
+      <Box
+        sx={{
+          width: '1px',
+          height: '24px', // Adjust height to fit the button
+          backgroundColor: '#ddd',
+          margin: '0 8px', // Adjust spacing around the separator
+        }}
+      />
       <Button
         component={Link}
         to='/screen'
@@ -104,6 +114,32 @@ const Navbar = () => {
         }}
       >
         Screen
+      </Button>
+      <Box
+        sx={{
+          width: '1px',
+          height: '24px', // Adjust height to fit the button
+          backgroundColor: '#ddd',
+          margin: '0 8px', // Adjust spacing around the separator
+        }}
+      />
+      <Button
+        component={Link}
+        to='/canvas'
+        sx={{
+          textTransform: 'none',
+          color: currentPath === '/canvas' ? '#fff' : 'inherit',
+          backgroundColor:
+            currentPath === '/canvas' ? '#007bff' : 'transparent',
+          padding: '8px 16px',
+          margin: 0,
+          '&:hover': {
+            textDecoration: 'none',
+            backgroundColor: currentPath === '/canvas' ? '#0056b3' : '#ddd',
+          },
+        }}
+      >
+        Canvas
       </Button>
     </Box>
   );

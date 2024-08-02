@@ -1,29 +1,34 @@
 import React, { useState } from 'react';
-import {
-  Drawer,
-  TextField,
-  Slider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  IconButton,
-  Box,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { TextField, Slider, Box, Button } from '@mui/material';
 
 const drawerWidth = '20%';
 
-const RightSidePanel = ({
-  selectedElement,
-  onUpdateProperty,
-}) => {
+const RightSidePanel = ({ selectedItem, onUpdateProperty }) => {
   const [property, setProperty] = useState({});
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setProperty((prev) => ({ ...prev, [name]: value }));
     onUpdateProperty(name, value);
+  };
+
+  const handleImageUpload = () => {};
+  const handleUploadClick = () => {
+    // Open file input dialog
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          handleImageUpload(reader.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    fileInput.click();
   };
 
   return (
@@ -39,9 +44,19 @@ const RightSidePanel = ({
         flexDirection: 'column',
       }}
     >
-      {!selectedElement && ('No selection')}
-      {selectedElement && (
+      {!selectedItem && 'No selection'}
+      {selectedItem && (
         <>
+          {selectedItem.key === 'image' && (
+            <Button
+              variant='contained'
+              color='primary'
+              onClick={handleUploadClick}
+              sx={{ mb: 2 }}
+            >
+              Upload Image
+            </Button>
+          )}
           <TextField
             label='Name'
             name='name'

@@ -1,30 +1,52 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-export default function Whiteboard({ draggedImage }) {
-  const [imagePosition, setImagePosition] = useState(null);
+export default function Whiteboard({ dragItemType }) {
+  const [items, setItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [draggingIndex, setDraggingIndex] = useState(null);
   const whiteboardRef = useRef(null);
-  const [images, setImages] = useState([]);
+  const itemRefs = useRef([]);
+
+  const handleClickOutside = (event) => {
+    if (itemRefs.current.every((ref) => ref && !ref.contains(event.target))) {
+      setSelectedItem(null);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   const handleDrop = (event) => {
     event.preventDefault();
-    if (draggedImage) {
-      const whiteboard = whiteboardRef.current;
-      if (whiteboard) {
-        // Calculate the drop position relative to the whiteboard
-        const rect = whiteboard.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+    const whiteboard = whiteboardRef.current;
+    if (whiteboard) {
+      const rect = whiteboard.getBoundingClientRect();
+      const x = event.clientX - rect.left * 2;
+      const y = event.clientY - rect.top * 2;
 
-        // Set the image position
-        setImagePosition({ x, y });
-
-        setImages((prevImages) => [...prevImages, { src: draggedImage, x, y }]);
+      if (dragItemType) {
+        const newItem = {
+          type: dragItemType,
+          src:
+            dragItemType === 'image' ? 'https://via.placeholder.com/150' : '',
+          x,
+          y,
+        };
+        setItems((prevItems) => [...prevItems, newItem]);
       }
     }
   };
 
   const handleDragOver = (event) => {
-    event.preventDefault(); // Necessary to allow drop
+    event.preventDefault();
+  };
+
+  const startDragging = (index) => {
+    setDraggingIndex(index);
   };
 
   return (
@@ -43,20 +65,48 @@ export default function Whiteboard({ draggedImage }) {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      {images.map((img, index) => (
-        <img
-          key={index}
-          src={img.src}
-          alt={`Dragged Item ${index}`}
-          style={{
-            position: 'absolute',
-            top: img.y,
-            left: img.x,
-            width: '150px',
-            height: '150px',
-          }}
-        />
-      ))}
+      {items.map((item, index) =>
+        item.type === 'image' ? (
+          <img
+            key={index}
+            src={item.src}
+            alt={`Dragged Item ${index}`}
+            style={{
+              position: 'absolute',
+              top: item.y,
+              left: item.x,
+              width: '150px',
+              height: '150px',
+              cursor: 'move',
+              border: selectedItem === index ? '2px solid red' : 'none',
+            }}
+            draggable
+            onDragStart={() => startDragging(index)}
+            onClick={() => setSelectedItem(index)}
+            ref={(el) => (itemRefs.current[index] = el)}
+          />
+        ) : (
+          item.type === 'square' && (
+            <div
+              key={index}
+              style={{
+                position: 'absolute',
+                top: item.y,
+                left: item.x,
+                width: '150px',
+                height: '150px',
+                backgroundColor: 'blue', // Example color
+                border: selectedItem === index ? '2px solid red' : 'none',
+                cursor: 'move',
+              }}
+              draggable
+              onDragStart={() => startDragging(index)}
+              onClick={() => setSelectedItem(index)}
+              ref={(el) => (itemRefs.current[index] = el)}
+            />
+          )
+        )
+      )}
     </div>
   );
 }

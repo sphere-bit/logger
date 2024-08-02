@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { List, ListItemButton, ListItemIcon, Box, Grid } from '@mui/material';
 import CategoryIcon from '@mui/icons-material/Category';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import CarIcon from '@mui/icons-material/DirectionsCar';
-import PinIcon from '@mui/icons-material/Pin';
+import ImageIcon from '@mui/icons-material/Image';
 import LooksOneOutlinedIcon from '@mui/icons-material/LooksOneOutlined';
+import SquareIcon from '@mui/icons-material/Square'; // Import square icon
 import Whiteboard from './Whiteboard';
 import RightSidePanel from './RightSidePanel';
 
@@ -21,7 +20,7 @@ function CustomPanel(props) {
       style={{
         position: 'absolute',
         top: position.top,
-        left: position.left,
+        left: position.left - 10,
         border: '1px solid #ccc',
         borderRadius: 4,
         backgroundColor: '#fff',
@@ -80,7 +79,13 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
     // Create a placeholder image if not already created
     const img = document.createElement('img');
     if (!dragImageRef.current) {
-      img.src = 'https://via.placeholder.com/150'; // Placeholder image URL
+      img.src =
+        type === 'square'
+          ? 'data:image/svg+xml;base64,' +
+            btoa(
+              '<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg"><rect width="150" height="150" fill="blue"/></svg>'
+            )
+          : 'https://via.placeholder.com/150';
       img.style.width = '150px'; // Set dimensions
       img.style.height = '150px';
       img.style.position = 'absolute'; // Ensure it's positioned absolutely
@@ -89,22 +94,9 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
       dragImageRef.current = img;
     }
     setDraggingItem(img.src);
-    onDragStart && onDragStart(event, 'add');
   };
-  useEffect(() => {
-    const handleDragEnd = () => {
-      if (dragImageRef.current) {
-        document.body.removeChild(dragImageRef.current);
-        dragImageRef.current = null;
-      }
-    };
-  
-    document.addEventListener('dragend', handleDragEnd);
-    return () => {
-      document.removeEventListener('dragend', handleDragEnd);
-    };
-  }, []);
-  const handleIconClick = (event) => {
+
+  const handleIconClick = (event, type) => {
     event.preventDefault();
     const img = document.createElement('img');
     img.src = 'https://via.placeholder.com/150'; // Placeholder image URL
@@ -115,18 +107,64 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
     img.style.left = `${event.clientX}px`;
     img.style.top = `${event.clientY}px`;
     img.style.display = 'block'; // Show the image
+    img.style.pointerEvents = 'none'; // Disable pointer events so it doesn't block the mouse events
     document.body.appendChild(img);
-    setDraggingItem(img.src);
 
-    // Optional: Notify parent component
-    onDragStart && onDragStart(event, 'add');
+    const moveAt = (pageX, pageY) => {
+      img.style.left = `${pageX - img.width / 2}px`;
+      img.style.top = `${pageY - img.height / 2}px`;
+    };
+
+    moveAt(event.pageX, event.pageY);
+
+    const onMouseMove = (event) => {
+      moveAt(event.pageX, event.pageY);
+    };
+
+    const onMouseUp = (event) => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      // Trigger a custom drop event
+      const dropEvent = new MouseEvent('drop', {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      const whiteboard = document.querySelector('.whiteboard');
+      if (whiteboard) {
+        whiteboard.dispatchEvent(dropEvent);
+      }
+
+      // Update the dragging state
+      setDraggingItem(img.src);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   };
+
+  useEffect(() => {
+    const handleDragEnd = () => {
+      if (dragImageRef.current) {
+        document.body.removeChild(dragImageRef.current);
+        dragImageRef.current = null;
+      }
+    };
+
+    document.addEventListener('dragend', handleDragEnd);
+    return () => {
+      document.removeEventListener('dragend', handleDragEnd);
+    };
+  }, []);
 
   return (
     <div className='flex-container'>
       <div className='side-toolbar'>
         <List>
-          {['Numerics', 'Category', 'Assessment', 'Car'].map((text, index) => (
+          {['Category', 'Image', 'Shapes'].map((text, index) => (
             <ListItemButton
               key={text}
               ref={(el) => (itemRefs.current[index] = el)}
@@ -134,10 +172,9 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
               onClick={() => handleItemClick(index)}
             >
               <ListItemIcon>
-                {index === 0 && <PinIcon />}
-                {index === 1 && <CategoryIcon />}
-                {index === 2 && <AssessmentIcon />}
-                {index === 3 && <CarIcon />}
+                {index === 0 && <CategoryIcon />}
+                {index === 1 && <ImageIcon />}
+                {index === 2 && <SquareIcon />} {/* Square icon for Shapes */}
               </ListItemIcon>
             </ListItemButton>
           ))}
@@ -150,9 +187,9 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
                 <ListItemButton
                   draggable
                   ref={(el) => (itemRefs.current[0] = el)}
-                  key={'Indicator'}
+                  key={'indicator'}
                   onDragStart={(e) => handleDragStart(e, 'add')}
-                  onClick={handleIconClick} // Handle click for image creation
+                  onClick={(e) => handleIconClick(e, 'add')} // Handle click for image creation
                   className='icon-container'
                 >
                   <LooksOneOutlinedIcon />
@@ -162,12 +199,44 @@ export default function SideToolbar({ onItemSelect, onDragStart }) {
             </Grid>
           </CustomPanel>
         )}
+        {selectedItem === 1 && (
+          <CustomPanel position={panelPosition}>
+            Shapes
+            <Grid container spacing={2}>
+              <Grid item>
+                <ListItemButton
+                  draggable
+                  ref={(el) => (itemRefs.current[1] = el)}
+                  key={'image'}
+                  onDragStart={(e) => handleDragStart(e, 'image')}
+                  onClick={(e) => handleIconClick(e, 'image')} // Handle click for image creation
+                  className='icon-container'
+                >
+                  <ImageIcon />
+                  Image
+                </ListItemButton>
+              </Grid>
+              <Grid item>
+                <ListItemButton
+                  draggable
+                  ref={(el) => (itemRefs.current[2] = el)}
+                  key={'square'}
+                  onDragStart={(e) => handleDragStart(e, 'square')}
+                  onClick={(e) => handleIconClick(e, 'square')}
+                  className='icon-container'
+                >
+                  <SquareIcon />
+                  Square
+                </ListItemButton>
+              </Grid>
+            </Grid>
+          </CustomPanel>
+        )}
       </div>
       <Whiteboard
         className='whiteboard-container'
-        draggedImage={draggingItem}
+        draggedItem={draggingItem}
       />
-      <RightSidePanel /*selectedElement={selectedElement}*/ />
     </div>
   );
 }

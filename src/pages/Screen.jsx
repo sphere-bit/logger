@@ -19,7 +19,6 @@ const Screen = () => {
   return (
     <div className='flex-container'>
       <SideToolbar onTabChange={handleTabChange} />
-
     </div>
   );
 };

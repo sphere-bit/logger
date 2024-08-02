@@ -5,19 +5,23 @@ import Logging from './pages/Logging.jsx';
 import Display from './pages/Display.jsx';
 import Navbar from './components/Navbar.jsx';
 import Screen from './pages/Screen.jsx';
+import Canvas from './pages/Canvas.tsx';
 
 const App = () => {
   return (
     <div className='app'>
       <BrowserRouter>
-        <Navbar></Navbar>
-        <Routes>
-          <Route path='/' element={<Display />} />
-          <Route path='/channels' element={<Channels />} />
-          <Route path='/logging' element={<Logging />} />
-          <Route path='/display' element={<Display />} />
-          <Route path='/screen' element={<Screen />} />
-        </Routes>
+        <Navbar />
+        <div className='content'>
+          <Routes>
+            <Route path='/' element={<Display />} />
+            <Route path='/channels' element={<Channels />} />
+            <Route path='/logging' element={<Logging />} />
+            <Route path='/display' element={<Display />} />
+            <Route path='/screen' element={<Screen />} />
+            <Route path='/canvas' element={<Canvas />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </div>
   );
