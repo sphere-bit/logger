@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
 import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,6 +26,17 @@ app.use(cors());
 app.use(express.static(join(__dirname, 'public')));
 app.use(express.static(join(__dirname, 'src')));
 app.use(express.json());
+app.use('/images', express.static(join(__dirname, 'public', 'images')));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'public', 'images')); // Save images to /public/images directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname); // Use the original file name
+  }
+});
+const upload = multer({ storage });
 
 const PORT = process.env.PORT || 8081;
 
@@ -111,62 +124,54 @@ app.get('/events', (req, res) => {
 
 // Endpoint to serve the positions.json file
 app.get('/positions.json', (req, res) => {
-  fs.readFile(
-    join(__dirname, 'src', 'positions.json'),
-    'utf8',
-    (err, data) => {
-      if (err) {
-        return res.status(500).send('Failed to load positions');
-      }
-      res.send(data);
+  fs.readFile(join(__dirname, 'src', 'positions.json'), 'utf8', (err, data) => {
+    if (err) {
+      return res.status(500).send('Failed to load positions');
     }
-  );
+    res.send(data);
+  });
 });
 
 // Endpoint to save the positions
 app.post('/save-positions', (req, res) => {
   const newPositions = req.body;
-  console.log('saved')
-  fs.readFile(
-    join(__dirname, 'src', 'positions.json'),
-    'utf8',
-    (err, data) => {
-      if (err) {
-        return res.status(500).send('Failed to read positions file');
-      }
-
-      let positions = {};
-
-      try {
-        positions = JSON.parse(data);
-      } catch (jsonError) {
-        return res.status(500).send('Invalid JSON format in positions file');
-      }
-
-      // Update or add positions
-      for (const key in newPositions) {
-        if (positions[key]) {
-          // If the key exists, update the existing entry
-          positions[key].top = newPositions[key].top;
-          positions[key].left = newPositions[key].left;
-        } else {
-          // If the key does not exist, add it
-          positions[key] = newPositions[key];
-        }
-      }
-
-      fs.writeFile(
-        join(__dirname, 'src', 'positions.json'),
-        JSON.stringify(positions, null, 2),
-        (err) => {
-          if (err) {
-            return res.status(500).send('Failed to save positions');
-          }
-          res.send('Positions saved successfully');
-        }
-      );
+  console.log('saved');
+  fs.readFile(join(__dirname, 'src', 'positions.json'), 'utf8', (err, data) => {
+    if (err) {
+      return res.status(500).send('Failed to read positions file');
     }
-  );
+
+    let positions = {};
+
+    try {
+      positions = JSON.parse(data);
+    } catch (jsonError) {
+      return res.status(500).send('Invalid JSON format in positions file');
+    }
+
+    // Update or add positions
+    for (const key in newPositions) {
+      if (positions[key]) {
+        // If the key exists, update the existing entry
+        positions[key].top = newPositions[key].top;
+        positions[key].left = newPositions[key].left;
+      } else {
+        // If the key does not exist, add it
+        positions[key] = newPositions[key];
+      }
+    }
+
+    fs.writeFile(
+      join(__dirname, 'src', 'positions.json'),
+      JSON.stringify(positions, null, 2),
+      (err) => {
+        if (err) {
+          return res.status(500).send('Failed to save positions');
+        }
+        res.send('Positions saved successfully');
+      }
+    );
+  });
 });
 
 app.post('/save-data', (req, res) => {
@@ -179,6 +184,79 @@ app.post('/save-data', (req, res) => {
     }
     res.send('Sensor data saved successfully');
   });
+});
+
+app.post('/save-excalidraw-data', (req, res) => {
+  const { elements, appState } = req.body;
+
+  // Check for required properties
+  if (!elements || !appState) {
+    return res.status(400).send('Invalid data format');
+  }
+
+  // Ensure collaborators is an array
+  if (!Array.isArray(appState.collaborators)) {
+    appState.collaborators = [];
+  }
+
+  const data = { elements, appState };
+  const filePath = join(__dirname, 'src', 'excalidraw-data.json');
+
+  fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
+    if (err) {
+      console.error('Failed to save Excalidraw data:', err);
+      return res.status(500).send('Failed to save Excalidraw data');
+    }
+    res.send('Excalidraw data saved successfully');
+  });
+});
+
+app.get('/get-excalidraw-data', (req, res) => {
+  const filePath = join(__dirname, 'src', 'excalidraw-data.json');
+
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        // File does not exist, return empty data
+        return res.json({ elements: [], appState: { collaborators: [] } });
+      } else {
+        console.error('Failed to load Excalidraw data:', err);
+        return res.status(500).send('Failed to load Excalidraw data');
+      }
+    }
+
+    try {
+      const parsedData = JSON.parse(data);
+
+      // Ensure appState.collaborators is an array
+      if (!Array.isArray(parsedData.appState.collaborators)) {
+        parsedData.appState.collaborators = [];
+      }
+
+      res.json(parsedData);
+    } catch (jsonError) {
+      console.error('Error parsing JSON:', jsonError);
+      res.status(500).send('Invalid JSON format in Excalidraw data file');
+    }
+  });
+});
+
+app.get('/get-image/:fileId', (req, res) => {
+  const { fileId } = req.params;
+  const filePath = path.join(__dirname, 'public', 'images', fileId); // Assuming fileId includes file extension
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).send('Image not found');
+    }
+    res.sendFile(filePath);
+  });
+});
+
+// Route to handle image uploads
+app.post('/upload-image', upload.single('file'), (req, res) => {
+  const imageUrl = `/images/${req.file.filename}`;
+  res.send(imageUrl);
 });
 
 io.on('connection', (socket) => {

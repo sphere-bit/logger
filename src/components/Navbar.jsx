@@ -13,7 +13,6 @@ const Navbar = () => {
         display: 'flex',
         alignItems: 'center',
         backgroundColor: '#f0f0f0',
-        padding: '10px',
         borderBottom: '1px solid #ddd',
         zIndex: 999,
         gap: 0, // No gap between buttons

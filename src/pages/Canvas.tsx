@@ -95,25 +95,25 @@ export default function Canvas() {
                 type: 'geo',
                 x: 100,
                 y: 100,
-                props: { w: 300, h: 300, text: '' }, // Initialize with empty text
-              },
-              {
-                type: 'geo',
-                x: 500,
-                y: 150,
-                props: { w: 300, h: 300, text: '' }, // Initialize with empty text
+                props: { w: 150, h: 50, text: '' }, // Initialize with empty text
               },
               {
                 type: 'geo',
                 x: 100,
-                y: 500,
-                props: { w: 300, h: 300, text: '' }, // Initialize with empty text
+                y: 200,
+                props: { w: 150, h: 50, text: '' }, // Initialize with empty text
               },
               {
                 type: 'geo',
-                x: 500,
-                y: 500,
-                props: { w: 300, h: 300, text: '' }, // Initialize with empty text
+                x: 100,
+                y: 300,
+                props: { w: 150, h: 50, text: '' }, // Initialize with empty text
+              },
+              {
+                type: 'geo',
+                x: 100,
+                y: 400,
+                props: { w: 150, h: 50, text: '' }, // Initialize with empty text
               },
             ]);
           }
