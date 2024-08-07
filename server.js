@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import express from 'express';
+import express, { json } from 'express';
 import fs from 'fs';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
@@ -10,6 +10,7 @@ import { ReadlineParser } from '@serialport/parser-readline';
 import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
+import Mime from 'mime';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,6 +28,11 @@ app.use(express.static(join(__dirname, 'public')));
 app.use(express.static(join(__dirname, 'src')));
 app.use(express.json());
 app.use('/images', express.static(join(__dirname, 'public', 'images')));
+app.use(
+  json({
+    limit: '20mb',
+  })
+);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -34,7 +40,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, file.originalname); // Use the original file name
-  }
+  },
 });
 const upload = multer({ storage });
 
@@ -187,7 +193,7 @@ app.post('/save-data', (req, res) => {
 });
 
 app.post('/save-excalidraw-data', (req, res) => {
-  const { elements, appState } = req.body;
+  const { elements, appState, files } = req.body;
 
   // Check for required properties
   if (!elements || !appState) {
@@ -199,7 +205,7 @@ app.post('/save-excalidraw-data', (req, res) => {
     appState.collaborators = [];
   }
 
-  const data = { elements, appState };
+  const data = { elements, appState, files };
   const filePath = join(__dirname, 'src', 'excalidraw-data.json');
 
   fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
@@ -218,7 +224,7 @@ app.get('/get-excalidraw-data', (req, res) => {
     if (err) {
       if (err.code === 'ENOENT') {
         // File does not exist, return empty data
-        return res.json({ elements: [], appState: { collaborators: [] } });
+        return res.json({ elements: [], appState: { collaborators: [] }, files: [] });
       } else {
         console.error('Failed to load Excalidraw data:', err);
         return res.status(500).send('Failed to load Excalidraw data');
@@ -241,15 +247,28 @@ app.get('/get-excalidraw-data', (req, res) => {
   });
 });
 
-app.get('/get-image/:fileId', (req, res) => {
-  const { fileId } = req.params;
-  const filePath = path.join(__dirname, 'public', 'images', fileId); // Assuming fileId includes file extension
+app.get('/get-images', (req, res) => {
+  const imagesDir = path.join(__dirname, 'public', 'images');
 
-  fs.access(filePath, fs.constants.F_OK, (err) => {
+  fs.readdir(imagesDir, (err, files) => {
     if (err) {
-      return res.status(404).send('Image not found');
+      return res.status(500).send('Error reading images directory');
     }
-    res.sendFile(filePath);
+
+    const imageFiles = files.map((file) => {
+      const filePath = path.join(imagesDir, file);
+      const mimeType = Mime.getType(filePath);
+      const fileId = path.basename(file, path.extname(file));
+
+      // Convert the image to a data URL
+      const dataURL = `data:${mimeType};base64,${fs.readFileSync(
+        filePath,
+        'base64'
+      )}`;
+      return { fileId, mimeType, dataURL };
+    });
+
+    res.json(imageFiles);
   });
 });
 

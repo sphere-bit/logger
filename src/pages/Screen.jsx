@@ -6,7 +6,6 @@ import {
 } from '@excalidraw/excalidraw';
 import io from 'socket.io-client';
 import { Button } from '@mui/material';
-import { CompletedSinkImpl } from 'igniteui-react-core';
 
 // Initialize socket connection
 const socket = io('http://localhost:8081');
@@ -15,32 +14,87 @@ const Screen = () => {
   const [sensorTemps, setSensorTemps] = useState({});
   const [excalidrawAPI, setExcalidrawAPI] = useState(null);
   const [selectedSensors, setSelectedSensors] = useState([]);
-  const [imageUrl, setImageUrl] = useState('');
+  const [initialData, setInitialData] = useState({
+    elements: [],
+    appState: { collaborators: [] },
+  });
 
   useEffect(() => {
-    const loadExcalidrawData = async () => {
+    const fetchImageAsDataURL = async (imageUrl) => {
       try {
-        const response = await fetch('http://localhost:8081/get-excalidraw-data');
-
+        const response = await fetch(imageUrl);
         if (!response.ok) {
-          if (response.status === 404) {
-            console.warn('Excalidraw data file does not exist. No data to load.');
-            excalidrawAPI.updateScene({
-              elements: [],
-              appState: { collaborators: [] },
-            });
+          throw new Error('Network response was not ok');
+        }
+        const blob = await response.blob();
+        const base64 = await blobToBase64(blob);
+        const mimeType = blob.type;
+        return `data:${mimeType};base64,${base64}`;
+      } catch (error) {
+        console.error('Error fetching image:', error);
+      }
+    };
+
+    const blobToBase64 = (blob) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    const loadData = async () => {
+      try {
+        const dataResponse = await fetch(
+          'http://localhost:8081/get-excalidraw-data'
+        );
+        if (!dataResponse.ok) {
+          if (dataResponse.status === 404) {
+            console.warn(
+              'Excalidraw data file does not exist. No data to load.'
+            );
+            if (excalidrawAPI) {
+              excalidrawAPI.updateScene({
+                elements: [],
+                appState: { collaborators: [] },
+              });
+            }
           } else {
-            console.error('Failed to load Excalidraw data, status:', response.status);
+            console.error(
+              'Failed to load Excalidraw data, status:',
+              dataResponse.status
+            );
           }
           return;
         }
 
-        const data = await response.json();
-        if (data.elements && data.appState) {
-          excalidrawAPI.updateScene(data);
+        const excalidrawData = await dataResponse.json();
+        if (
+          excalidrawData.elements &&
+          excalidrawData.appState &&
+          excalidrawData.appState.files
+        ) {
+          // Update initial data with combined elements and files
+          console.log(excalidrawData.appState.files);
+          excalidrawAPI.addFiles(Object.values(excalidrawData.appState.files))
+          setInitialData({
+            elements: excalidrawData.elements,
+            appState: excalidrawData.appState,
+          });
+
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              elements: excalidrawData.elements,
+              appState: excalidrawData.appState,
+            });
+          }
 
           // Check which sensors are already on the board and update selectedSensors
-          const initialSelectedSensors = data.elements
+          const initialSelectedSensors = excalidrawData.elements
             .filter((element) => element.type === 'text')
             .map((element) => {
               const match = element.text.match(/^(\d+):/);
@@ -51,22 +105,26 @@ const Screen = () => {
           setSelectedSensors(initialSelectedSensors);
         } else {
           console.error('Invalid data format received from server');
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              elements: [],
+              appState: { collaborators: [] },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        if (excalidrawAPI) {
           excalidrawAPI.updateScene({
             elements: [],
             appState: { collaborators: [] },
           });
         }
-      } catch (error) {
-        console.error('Error loading Excalidraw data:', error);
-        excalidrawAPI.updateScene({
-          elements: [],
-          appState: { collaborators: [] },
-        });
       }
     };
 
     if (excalidrawAPI) {
-      loadExcalidrawData();
+      loadData();
     }
   }, [excalidrawAPI]);
 
@@ -184,48 +242,48 @@ const Screen = () => {
   };
 
   const saveDrawing = async () => {
-    // TODO: Fix upload and save image src to server and load image src.
     if (excalidrawAPI) {
       try {
         const elements = excalidrawAPI.getSceneElements();
         const appState = excalidrawAPI.getAppState();
-
+        const files = excalidrawAPI.getFiles();
         const imagePromises = elements
           .filter((element) => element.type === 'image')
-          .map(async (imageElement) => {
-            if (imageElement.fileId) {
-              // If fileId is present, the image is not a direct data URL
-              console.warn(
-                `Image with fileId ${imageElement.fileId} found, skip processing.`
-              );
-              return;
-            }
-
-            const imageUrl = imageElement.src;
-            if (imageUrl && imageUrl.startsWith('data:image/')) {
-              // Extract image data URL and upload
-              const blob = await fetch(imageUrl).then((res) => res.blob());
-              const formData = new FormData();
-              formData.append('file', blob, 'image.png'); // Use default filename
-
-              const uploadResponse = await fetch(
-                'http://localhost:8081/upload-image',
-                {
-                  method: 'POST',
-                  body: formData,
+          .map(async (el) => {
+            if (el.fileId) {
+              const imageUrl = files[el?.fileId]?.dataURL;
+              if (imageUrl && imageUrl.startsWith('data:image/')) {
+                const blob = await fetch(imageUrl).then((res) => res.blob());
+                const formData = new FormData();
+                formData.append('file', blob, `${el.fileId}.png`);
+                const uploadResponse = await fetch(
+                  'http://localhost:8081/upload-image',
+                  {
+                    method: 'POST',
+                    body: formData,
+                  }
+                );
+                if (!uploadResponse.ok) {
+                  throw new Error('Failed to upload image');
                 }
-              );
-
-              if (!uploadResponse.ok) {
-                throw new Error('Failed to upload image');
               }
-
-              const newImageUrl = await uploadResponse.text();
-              imageElement.src = newImageUrl; // Update image URL in element
             }
           });
 
         await Promise.all(imagePromises);
+
+        const filesToSend = {};
+        Object.keys(files).forEach((fileId) => {
+          filesToSend[fileId] = {
+            mimeType: files[fileId].mimeType,
+            id: fileId,
+            dataURL: `http://localhost:8081/images/${fileId}.png`,
+            lastRetrieved: Date.now(),
+            created: Date.now(),
+          };
+        });
+
+        appState.files = filesToSend;
 
         await fetch('http://localhost:8081/save-excalidraw-data', {
           method: 'POST',
@@ -247,7 +305,9 @@ const Screen = () => {
           <Button
             key={sensorId}
             onClick={() => toggleSensor(sensorId)}
-            variant={selectedSensors.includes(sensorId) ? 'contained' : 'outlined'}
+            variant={
+              selectedSensors.includes(sensorId) ? 'contained' : 'outlined'
+            }
           >
             {selectedSensors.includes(sensorId)
               ? `Remove ${sensorId}`
@@ -258,11 +318,7 @@ const Screen = () => {
       </div>
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawAPI(api)}
-        initialData={{
-          elements: [],
-          appState: { zenModeEnabled: true },
-          scrollToContent: true,
-        }}
+        initialData={initialData}
       />
     </div>
   );
