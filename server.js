@@ -206,7 +206,7 @@ app.post('/save-excalidraw-data', (req, res) => {
   }
 
   const data = { elements, appState, files };
-  const filePath = join(__dirname, 'src', 'excalidraw-data.json');
+  const filePath = join(__dirname, 'src', 'excalidraw_data.json');
 
   fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
     if (err) {
@@ -218,13 +218,17 @@ app.post('/save-excalidraw-data', (req, res) => {
 });
 
 app.get('/get-excalidraw-data', (req, res) => {
-  const filePath = join(__dirname, 'src', 'excalidraw-data.json');
+  const filePath = join(__dirname, 'src', 'excalidraw_data.json');
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') {
         // File does not exist, return empty data
-        return res.json({ elements: [], appState: { collaborators: [] }, files: [] });
+        return res.json({
+          elements: [],
+          appState: { collaborators: [] },
+          files: [],
+        });
       } else {
         console.error('Failed to load Excalidraw data:', err);
         return res.status(500).send('Failed to load Excalidraw data');
@@ -276,6 +280,34 @@ app.get('/get-images', (req, res) => {
 app.post('/upload-image', upload.single('file'), (req, res) => {
   const imageUrl = `/images/${req.file.filename}`;
   res.send(imageUrl);
+});
+
+// Save sensor names to a JSON file
+app.post('/save-sensor-data', (req, res) => {
+  const sensorData = req.body;
+  console.log(sensorData);
+  const filePath = path.join(__dirname, 'sensor_data.json');
+
+  fs.writeFile(filePath, JSON.stringify(sensorData, null, 2), (err) => {
+    if (err) {
+      console.error('Error saving sensor data:', err);
+      return res.status(500).json({ message: 'Failed to save sensor data.' });
+    }
+    res.json({ message: 'Sensor names saved successfully!' });
+  });
+});
+
+// Load sensor names from the JSON file
+app.get('/load-sensor-data', (req, res) => {
+  const filePath = path.join(__dirname, 'sensor_data.json');
+
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error loading sensor data:', err);
+      return res.status(500).json({ message: 'Failed to load sensor data.' });
+    }
+    res.json(JSON.parse(data));
+  });
 });
 
 io.on('connection', (socket) => {

@@ -36,14 +36,6 @@ const Navbar = () => {
       >
         Channels
       </Button>
-      <Box
-        sx={{
-          width: '1px',
-          height: '24px', // Adjust height to fit the button
-          backgroundColor: '#ddd',
-          margin: '0 8px', // Adjust spacing around the separator
-        }}
-      />
       <Button
         component={Link}
         to='/logging'
@@ -62,15 +54,7 @@ const Navbar = () => {
       >
         Logging
       </Button>
-      <Box
-        sx={{
-          width: '1px',
-          height: '24px', // Adjust height to fit the button
-          backgroundColor: '#ddd',
-          margin: '0 8px', // Adjust spacing around the separator
-        }}
-      />
-      <Button
+      {/* <Button
         component={Link}
         to='/display'
         sx={{
@@ -87,15 +71,7 @@ const Navbar = () => {
         }}
       >
         Display
-      </Button>{' '}
-      <Box
-        sx={{
-          width: '1px',
-          height: '24px', // Adjust height to fit the button
-          backgroundColor: '#ddd',
-          margin: '0 8px', // Adjust spacing around the separator
-        }}
-      />
+      </Button>{' '} */}
       <Button
         component={Link}
         to='/screen'
@@ -122,7 +98,7 @@ const Navbar = () => {
           margin: '0 8px', // Adjust spacing around the separator
         }}
       />
-      <Button
+      {/* <Button
         component={Link}
         to='/canvas'
         sx={{
@@ -139,7 +115,7 @@ const Navbar = () => {
         }}
       >
         Canvas
-      </Button>
+      </Button> */}
     </Box>
   );
 };

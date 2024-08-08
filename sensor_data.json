@@ -1,0 +1,12 @@
+{
+  "ch1": {
+    "sensorName": "Temp1",
+    "m": "1",
+    "c": "11"
+  },
+  "ch2": {
+    "sensorName": "Temp2",
+    "m": "2",
+    "c": "23"
+  }
+}

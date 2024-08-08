@@ -3,10 +3,13 @@ import {
   convertToExcalidrawElements,
   Excalidraw,
   exportToBlob,
+  WelcomeScreen,
 } from '@excalidraw/excalidraw';
 import io from 'socket.io-client';
-import { Button } from '@mui/material';
-
+import { Box, Button, Grid, IconButton, Typography } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 // Initialize socket connection
 const socket = io('http://localhost:8081');
 
@@ -18,35 +21,15 @@ const Screen = () => {
     elements: [],
     appState: { collaborators: [] },
   });
+  const [sensorOptions, setSensorOptions] = useState([
+    'sensor1',
+    'sensor2',
+    'sensor3',
+    'sensor4',
+  ]);
+  const [newTagSensor, setNewTagSensor] = useState('');
 
   useEffect(() => {
-    const fetchImageAsDataURL = async (imageUrl) => {
-      try {
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const blob = await response.blob();
-        const base64 = await blobToBase64(blob);
-        const mimeType = blob.type;
-        return `data:${mimeType};base64,${base64}`;
-      } catch (error) {
-        console.error('Error fetching image:', error);
-      }
-    };
-
-    const blobToBase64 = (blob) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    };
-
     const loadData = async () => {
       try {
         const dataResponse = await fetch(
@@ -79,8 +62,8 @@ const Screen = () => {
           excalidrawData.appState.files
         ) {
           // Update initial data with combined elements and files
-          console.log(excalidrawData.appState.files);
-          excalidrawAPI.addFiles(Object.values(excalidrawData.appState.files))
+          console.log(Object.values(excalidrawData.appState.files));
+          excalidrawAPI.addFiles(Object.values(excalidrawData.appState.files));
           setInitialData({
             elements: excalidrawData.elements,
             appState: excalidrawData.appState,
@@ -290,8 +273,7 @@ const Screen = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ elements, appState }),
         });
-
-        console.log('Drawing saved successfully');
+        window.alert('Saved');
       } catch (error) {
         console.error('Error saving drawing:', error);
       }
@@ -300,26 +282,55 @@ const Screen = () => {
 
   return (
     <div style={{ height: `calc(100vh - 80px)` }}>
-      <div>
-        {['sensor1', 'sensor2', 'sensor3', 'sensor4'].map((sensorId) => (
-          <Button
-            key={sensorId}
-            onClick={() => toggleSensor(sensorId)}
-            variant={
-              selectedSensors.includes(sensorId) ? 'contained' : 'outlined'
-            }
-          >
-            {selectedSensors.includes(sensorId)
-              ? `Remove ${sensorId}`
-              : `Add ${sensorId}`}
-          </Button>
-        ))}
-        <Button onClick={saveDrawing}>Save</Button>
-      </div>
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawAPI(api)}
         initialData={initialData}
-      />
+        renderTopRightUI={() => {
+          return (
+            <>
+              <Box>
+                Sensor
+                <Box display='flex' flexDirection='column'>
+                  <Grid container spacing={1}>
+                    {['sensor1', 'sensor2'].map((sensorId) => (
+                      <Grid item xs={6} key={sensorId}>
+                        <button
+                          key={sensorId}
+                          onClick={() => toggleSensor(sensorId)}
+                        >
+                          <Box display='flex' alignItems='center'>
+                            {selectedSensors.includes(sensorId) ? (
+                              <>
+                                <RemoveIcon
+                                  fontSize='small'
+                                  sx={{ marginRight: '4px' }}
+                                />
+                                {sensorId.replace(/^sensor/, '')}
+                              </>
+                            ) : (
+                              <>
+                                <AddIcon
+                                  fontSize='small'
+                                  sx={{ marginRight: '4px' }}
+                                />
+                                {sensorId.replace(/^sensor/, '')}
+                              </>
+                            )}
+                          </Box>
+                        </button>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Box>
+              <Button color='primary' onClick={saveDrawing}>
+                <SaveIcon />
+                Save
+              </Button>
+            </>
+          );
+        }}
+      ><WelcomeScreen /></Excalidraw>
     </div>
   );
 };

@@ -17,9 +17,9 @@ const App = () => {
             <Route path='/' element={<Canvas />} />
             <Route path='/channels' element={<Channels />} />
             <Route path='/logging' element={<Logging />} />
-            <Route path='/display' element={<Display />} />
+            {/* <Route path='/display' element={<Display />} /> */}
             <Route path='/screen' element={<Screen />} />
-            <Route path='/canvas' element={<Canvas />} />
+            {/* <Route path='/canvas' element={<Canvas />} /> */}
           </Routes>
         </div>
       </BrowserRouter>

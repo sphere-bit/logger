@@ -35,15 +35,34 @@ const Channels = () => {
   const [m, setM] = useState('');
   const [c, setC] = useState('');
 
+  const [sensorSettings, setSensorSettings] = useState({});
+
+  const [currentSensorName, setCurrentSensorName] = useState('');
+  const [sensorNames, setSensorNames] = useState({});
+
   useEffect(() => {
+    // Load sensor data from the server
+    fetch('http://localhost:8081/load-sensor-data')
+      .then((response) => response.json())
+      .then((data) => {
+        setSensorSettings(data);
+        const names = {};
+        Object.keys(data).forEach((sensor) => {
+          names[sensor] = data[sensor].sensorName || 'Unset';
+        });
+        setSensorNames(names);
+      })
+      .catch((error) => console.error('Error loading sensor data:', error));
+
+      
     // Event listener for receiving sensor data
     socket.on('serial-data', (dataString) => {
       const parsedData = parseSensorData(dataString);
       setSensorData((prevData) => {
         // Update existing data with new sensor readings
         const updatedData = { ...prevData };
-        Object.keys(parsedData).forEach((sensorName) => {
-          updatedData[sensorName] = parsedData[sensorName];
+        Object.keys(parsedData).forEach((channel) => {
+          updatedData[channel] = parsedData[channel];
         });
         return updatedData;
       });
@@ -58,12 +77,49 @@ const Channels = () => {
     };
   }, []);
 
-  const handleOpenDialog = (sensorName) => {
-    setCurrentSensor(sensorName);
+  const handleOpenDialog = (channel) => {
+    setCurrentSensor(channel);
+    setCurrentSensorName(sensorNames[channel] || '');
     setDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
+    const updatedSensorNames = {
+      ...sensorNames,
+      [currentSensor]: sensorSettings[currentSensor]?.sensorName || 'Unset',
+    };
+
+    setSensorNames(updatedSensorNames);
+    const saveSensorData = () => {
+      const updatedSensorData = {};
+      Object.keys(sensorData).forEach((sensor) => {
+        updatedSensorData[sensor] = {
+          sensorName: updatedSensorNames[sensor] || 'Unset',
+          m: sensorSettings[sensor]?.m || '',
+          c: sensorSettings[sensor]?.c || '',
+        };
+      });
+      console.log(updatedSensorData);
+
+      // Save updated sensor data to the server
+      fetch('http://localhost:8081/save-sensor-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedSensorData),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data.message);
+        })
+        .catch((error) => console.error('Error saving sensor data:', error));
+    };
+
+    // Using setTimeout to ensure state is updated before saving data
+    setTimeout(saveSensorData, 0);
+
+    // Close the dialog
     setDialogOpen(false);
   };
 
@@ -73,13 +129,13 @@ const Channels = () => {
     temps.forEach((temp, index) => {
       const cleanedTemp = temp.trim().replace('°C', '');
       const temperature = parseFloat(cleanedTemp);
-      sensorData[`sensor${index + 1}`] = temperature;
+      sensorData[`ch${index + 1}`] = temperature;
     });
     return sensorData;
   };
 
   // Determine if a sensor is active (replace with your logic)
-  const isSensorActive = (sensorName) => selectedSensors.has(sensorName);
+  const isSensorActive = (channel) => selectedSensors.has(channel);
 
   return (
     <div>
@@ -87,24 +143,24 @@ const Channels = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Sensor Name</TableCell>
+              <TableCell>Channel</TableCell>
+              <TableCell>Name</TableCell>
               <TableCell>Temperature</TableCell>
               <TableCell>Active</TableCell>
               <TableCell>Settings</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {Object.keys(sensorData).map((sensorName) => (
-              <TableRow key={sensorName}>
-                <TableCell>{sensorName}</TableCell>
-                <TableCell>{sensorData[sensorName]} °C</TableCell>
-                <TableCell>
-                  {isSensorActive(sensorName) ? 'Yes' : 'No'}
-                </TableCell>
+            {Object.keys(sensorData).map((channel) => (
+              <TableRow key={channel}>
+                <TableCell>{channel}</TableCell>
+                <TableCell>{sensorNames[channel] || 'Unset'}</TableCell>
+                <TableCell>{sensorData[channel]} °C</TableCell>
+                <TableCell>{isSensorActive(channel) ? 'Yes' : 'No'}</TableCell>
                 <TableCell>
                   <IconButton
                     color='primary'
-                    onClick={() => handleOpenDialog(sensorName)}
+                    onClick={() => handleOpenDialog(channel)}
                     aria-label='settings'
                   >
                     <SettingsIcon />
@@ -143,13 +199,29 @@ const Channels = () => {
           <Typography gutterBottom>
             Configure settings for {currentSensor}.
           </Typography>
+          <TextField
+            label='Sensor Name'
+            variant='outlined'
+            fullWidth
+            value={sensorSettings[currentSensor]?.sensorName || ''} // Controlled input for sensor name from sensorSettings
+            onChange={(e) =>
+              setSensorSettings((prevSettings) => ({
+                ...prevSettings,
+                [currentSensor]: {
+                  ...prevSettings[currentSensor],
+                  sensorName: e.target.value,
+                },
+              }))
+            }
+            sx={{ marginBottom: 2 }}
+          />
           <Box
             sx={{
-              width: '100%', // Adjust the width as needed
-              maxWidth: '500px', // Max width of the box
-              height: '300px', // Fixed height for the graph container
-              overflow: 'hidden', // Hide any overflow
-              position: 'relative', // For positioning child elements
+              width: '100%',
+              maxWidth: '500px',
+              height: '300px',
+              overflow: 'hidden',
+              position: 'relative',
               border: '1px solid black',
             }}
           >
@@ -177,8 +249,16 @@ const Channels = () => {
                 size='small'
                 placeholder='m'
                 sx={{ width: '80px', margin: '0 8px' }}
-                value={m}
-                onChange={(e) => setM(e.target.value)}
+                value={sensorSettings[currentSensor]?.m || ''} // Value for m from sensorSettings
+                onChange={(e) =>
+                  setSensorSettings((prevSettings) => ({
+                    ...prevSettings,
+                    [currentSensor]: {
+                      ...prevSettings[currentSensor],
+                      m: e.target.value,
+                    },
+                  }))
+                }
               />
               x +
               <TextField
@@ -186,8 +266,16 @@ const Channels = () => {
                 size='small'
                 placeholder='c'
                 sx={{ width: '80px', margin: '0 8px' }}
-                value={c}
-                onChange={(e) => setC(e.target.value)}
+                value={sensorSettings[currentSensor]?.c || ''} // Value for m from sensorSettings
+                onChange={(e) =>
+                  setSensorSettings((prevSettings) => ({
+                    ...prevSettings,
+                    [currentSensor]: {
+                      ...prevSettings[currentSensor],
+                      c: e.target.value,
+                    },
+                  }))
+                }
               />
             </Typography>
             <Typography variant='body2' gutterBottom>
