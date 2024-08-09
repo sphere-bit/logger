@@ -21,96 +21,105 @@ const Screen = () => {
     elements: [],
     appState: { collaborators: [] },
   });
-  const [sensorOptions, setSensorOptions] = useState([
-    'sensor1',
-    'sensor2',
-    'sensor3',
-    'sensor4',
-  ]);
-  const [newTagSensor, setNewTagSensor] = useState('');
+  const [sensorSettings, setSensorSettings] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
+  // Fetch sensor data
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const dataResponse = await fetch(
-          'http://localhost:8081/get-excalidraw-data'
-        );
-        if (!dataResponse.ok) {
-          if (dataResponse.status === 404) {
-            console.warn(
-              'Excalidraw data file does not exist. No data to load.'
-            );
-            if (excalidrawAPI) {
+    const fetchSensorData = () => {
+      return fetch('http://localhost:8081/load-sensor-data')
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Failed to load sensor data');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          setSensorSettings(data);
+        })
+        .catch((error) => {
+          console.error('Error fetching sensor data:', error);
+        });
+    };
+
+    fetchSensorData().then(() => setDataLoaded(true));
+  }, []);
+
+  // Load Excalidraw data after sensor data is fetched
+  useEffect(() => {
+    const loadData = () => {
+      if (!dataLoaded || !excalidrawAPI) return;
+
+      return fetch('http://localhost:8081/get-excalidraw-data')
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.warn(
+                'Excalidraw data file does not exist. No data to load.'
+              );
               excalidrawAPI.updateScene({
                 elements: [],
                 appState: { collaborators: [] },
               });
+            } else {
+              throw new Error('Failed to load Excalidraw data');
             }
-          } else {
-            console.error(
-              'Failed to load Excalidraw data, status:',
-              dataResponse.status
-            );
           }
-          return;
-        }
+          return response.json();
+        })
+        .then((excalidrawData) => {
+          if (
+            excalidrawData.elements &&
+            excalidrawData.appState &&
+            excalidrawData.appState.files
+          ) {
+            excalidrawAPI.addFiles(
+              Object.values(excalidrawData.appState.files)
+            );
+            setInitialData({
+              elements: excalidrawData.elements,
+              appState: excalidrawData.appState,
+            });
 
-        const excalidrawData = await dataResponse.json();
-        if (
-          excalidrawData.elements &&
-          excalidrawData.appState &&
-          excalidrawData.appState.files
-        ) {
-          // Update initial data with combined elements and files
-          console.log(Object.values(excalidrawData.appState.files));
-          excalidrawAPI.addFiles(Object.values(excalidrawData.appState.files));
-          setInitialData({
-            elements: excalidrawData.elements,
-            appState: excalidrawData.appState,
-          });
-
-          if (excalidrawAPI) {
             excalidrawAPI.updateScene({
               elements: excalidrawData.elements,
               appState: excalidrawData.appState,
             });
-          }
 
-          // Check which sensors are already on the board and update selectedSensors
-          const initialSelectedSensors = excalidrawData.elements
-            .filter((element) => element.type === 'text')
-            .map((element) => {
-              const match = element.text.match(/^(\d+):/);
-              return match ? `sensor${match[1]}` : null;
-            })
-            .filter(Boolean);
+            const initialSelectedSensors = excalidrawData.elements
+              .filter((element) => element.type === 'text')
+              .map((element) => {
+                const sensorName = Object.keys(sensorSettings).find(
+                  (sensorId) =>
+                    sensorSettings[sensorId]?.name ===
+                    element.text.split(':')[0]
+                );
+                return sensorName || null;
+              })
+              .filter(Boolean);
 
-          setSelectedSensors(initialSelectedSensors);
-        } else {
-          console.error('Invalid data format received from server');
-          if (excalidrawAPI) {
+            setSelectedSensors(initialSelectedSensors);
+          } else {
+            console.error('Invalid data format received from server');
             excalidrawAPI.updateScene({
               elements: [],
               appState: { collaborators: [] },
             });
           }
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        if (excalidrawAPI) {
+        })
+        .catch((error) => {
+          console.error('Error loading data:', error);
           excalidrawAPI.updateScene({
             elements: [],
             appState: { collaborators: [] },
           });
-        }
-      }
+        });
     };
 
-    if (excalidrawAPI) {
-      loadData();
-    }
-  }, [excalidrawAPI]);
+    loadData();
+  }, [dataLoaded, excalidrawAPI]);
 
+  // Handle sensor data updates
   useEffect(() => {
     const handleSensorData = (dataString) => {
       const parsedData = parseSensorData(dataString);
@@ -128,8 +137,7 @@ const Screen = () => {
     return () => {
       socket.off('serial-data', handleSensorData);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [excalidrawAPI]);
+  }, [dataLoaded, excalidrawAPI]);
 
   const parseSensorData = (dataString) => {
     const [date, time, ...temps] = dataString.split(',');
@@ -137,7 +145,7 @@ const Screen = () => {
     temps.forEach((temp, index) => {
       const cleanedTemp = temp.trim().replace('°C', '');
       const temperature = parseFloat(cleanedTemp);
-      sensorData[`sensor${index + 1}`] = temperature;
+      sensorData[`ch${index + 1}`] = temperature;
     });
     return sensorData;
   };
@@ -145,15 +153,17 @@ const Screen = () => {
   const updateElements = (elements, sensorData) => {
     return elements.map((element) => {
       if (element.type === 'text') {
-        const match = element.text.match(/^(\d+):/);
-        if (match) {
-          const sensorId = `sensor${match[1]}`;
-          if (sensorData[sensorId] !== undefined) {
-            return {
-              ...element,
-              text: `${match[1]}: ${sensorData[sensorId].toFixed(2)}°C`,
-            };
-          }
+        const sensorName = Object.keys(sensorSettings).find(
+          (sensorId) =>
+            sensorSettings[sensorId]?.name === element.text.split(':')[0]
+        );
+        if (sensorName && sensorData[sensorName] !== undefined) {
+          return {
+            ...element,
+            text: `${sensorSettings[sensorName]?.name}: ${sensorData[
+              sensorName
+            ].toFixed(2)}°C`,
+          };
         }
       }
       return element;
@@ -163,13 +173,12 @@ const Screen = () => {
   const addSensorElement = (sensorId) => {
     if (excalidrawAPI) {
       const elements = excalidrawAPI.getSceneElements();
-      const match = sensorId.match(/\d+/);
-      const sensorNumber = match ? parseInt(match[0], 10) : null;
+      const sensorName = sensorSettings[sensorId]?.name;
       const newElementSkeleton = {
         type: 'text',
         x: 100,
-        y: 100 + sensorNumber * 50,
-        text: `${sensorNumber}: ${
+        y: 100 + Object.keys(sensorSettings).indexOf(sensorId) * 50,
+        text: `${sensorName}: ${
           parseFloat(sensorTemps[sensorId]).toFixed(2) || 'Loading...'
         }`,
         fontSize: 20,
@@ -188,25 +197,14 @@ const Screen = () => {
   const removeSensorElement = (sensorId) => {
     if (excalidrawAPI) {
       const elements = excalidrawAPI.getSceneElements();
-
-      // Convert sensorId to the format used in the element's text (e.g., "1:" for "sensor1")
-      const match = sensorId.match(/\d+/);
-      if (match) {
-        const sensorNumber = match[0];
-
-        // Filter out the elements whose text starts with the corresponding sensor number
-        const updatedElements = elements.filter((element) => {
-          if (element.type === 'text') {
-            const elementMatch = element.text.match(/^(\d+):/);
-            if (elementMatch && elementMatch[1] === sensorNumber) {
-              return false; // Remove this element
-            }
-          }
-          return true; // Keep this element
-        });
-
-        excalidrawAPI.updateScene({ elements: updatedElements });
-      }
+      const sensorName = sensorSettings[sensorId]?.name;
+      const updatedElements = elements.filter((element) => {
+        if (element.type === 'text') {
+          return !element.text.startsWith(sensorName);
+        }
+        return true;
+      });
+      excalidrawAPI.updateScene({ elements: updatedElements });
     }
   };
 
@@ -292,8 +290,8 @@ const Screen = () => {
                 Sensor
                 <Box display='flex' flexDirection='column'>
                   <Grid container spacing={1}>
-                    {['sensor1', 'sensor2'].map((sensorId) => (
-                      <Grid item xs={6} key={sensorId}>
+                    {Object.keys(sensorSettings).map((sensorId) => (
+                      <Grid item xs={10} md={12} xl={6} key={sensorId}>
                         <button
                           key={sensorId}
                           onClick={() => toggleSensor(sensorId)}
@@ -305,7 +303,7 @@ const Screen = () => {
                                   fontSize='small'
                                   sx={{ marginRight: '4px' }}
                                 />
-                                {sensorId.replace(/^sensor/, '')}
+                                {sensorSettings[sensorId]?.name}
                               </>
                             ) : (
                               <>
@@ -313,7 +311,7 @@ const Screen = () => {
                                   fontSize='small'
                                   sx={{ marginRight: '4px' }}
                                 />
-                                {sensorId.replace(/^sensor/, '')}
+                                {sensorSettings[sensorId]?.name}
                               </>
                             )}
                           </Box>
@@ -330,7 +328,9 @@ const Screen = () => {
             </>
           );
         }}
-      ><WelcomeScreen /></Excalidraw>
+      >
+        <WelcomeScreen />
+      </Excalidraw>
     </div>
   );
 };

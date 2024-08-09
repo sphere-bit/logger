@@ -193,7 +193,7 @@ app.post('/save-data', (req, res) => {
 });
 
 app.post('/save-excalidraw-data', (req, res) => {
-  const { elements, appState, files } = req.body;
+  const { elements, appState } = req.body;
 
   // Check for required properties
   if (!elements || !appState) {
@@ -205,7 +205,7 @@ app.post('/save-excalidraw-data', (req, res) => {
     appState.collaborators = [];
   }
 
-  const data = { elements, appState, files };
+  const data = { elements, appState };
   const filePath = join(__dirname, 'src', 'excalidraw_data.json');
 
   fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
@@ -286,7 +286,7 @@ app.post('/upload-image', upload.single('file'), (req, res) => {
 app.post('/save-sensor-data', (req, res) => {
   const sensorData = req.body;
   console.log(sensorData);
-  const filePath = path.join(__dirname, 'sensor_data.json');
+  const filePath = path.join(__dirname, 'src', 'sensor_data.json');
 
   fs.writeFile(filePath, JSON.stringify(sensorData, null, 2), (err) => {
     if (err) {
@@ -299,7 +299,7 @@ app.post('/save-sensor-data', (req, res) => {
 
 // Load sensor names from the JSON file
 app.get('/load-sensor-data', (req, res) => {
-  const filePath = path.join(__dirname, 'sensor_data.json');
+  const filePath = path.join(__dirname, 'src', 'sensor_data.json');
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {

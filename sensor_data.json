@@ -1,11 +1,11 @@
 {
   "ch1": {
-    "sensorName": "Temp1",
+    "name": "Alice",
     "m": "1",
     "c": "11"
   },
   "ch2": {
-    "sensorName": "Temp2",
+    "name": "Bob",
     "m": "2",
     "c": "23"
   }

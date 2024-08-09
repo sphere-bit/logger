@@ -48,13 +48,12 @@ const Channels = () => {
         setSensorSettings(data);
         const names = {};
         Object.keys(data).forEach((sensor) => {
-          names[sensor] = data[sensor].sensorName || 'Unset';
+          names[sensor] = data[sensor].name || 'Unset';
         });
         setSensorNames(names);
       })
       .catch((error) => console.error('Error loading sensor data:', error));
 
-      
     // Event listener for receiving sensor data
     socket.on('serial-data', (dataString) => {
       const parsedData = parseSensorData(dataString);
@@ -86,22 +85,22 @@ const Channels = () => {
   const handleCloseDialog = () => {
     const updatedSensorNames = {
       ...sensorNames,
-      [currentSensor]: sensorSettings[currentSensor]?.sensorName || 'Unset',
+      [currentSensor]: sensorSettings[currentSensor]?.name || 'Unset',
     };
 
     setSensorNames(updatedSensorNames);
+
     const saveSensorData = () => {
       const updatedSensorData = {};
       Object.keys(sensorData).forEach((sensor) => {
         updatedSensorData[sensor] = {
-          sensorName: updatedSensorNames[sensor] || 'Unset',
+          name: updatedSensorNames[sensor] || 'Unset',
           m: sensorSettings[sensor]?.m || '',
           c: sensorSettings[sensor]?.c || '',
         };
       });
       console.log(updatedSensorData);
 
-      // Save updated sensor data to the server
       fetch('http://localhost:8081/save-sensor-data', {
         method: 'POST',
         headers: {
@@ -116,7 +115,6 @@ const Channels = () => {
         .catch((error) => console.error('Error saving sensor data:', error));
     };
 
-    // Using setTimeout to ensure state is updated before saving data
     setTimeout(saveSensorData, 0);
 
     // Close the dialog
@@ -203,13 +201,13 @@ const Channels = () => {
             label='Sensor Name'
             variant='outlined'
             fullWidth
-            value={sensorSettings[currentSensor]?.sensorName || ''} // Controlled input for sensor name from sensorSettings
+            value={sensorSettings[currentSensor]?.name || ''} // Controlled input for sensor name from sensorSettings
             onChange={(e) =>
               setSensorSettings((prevSettings) => ({
                 ...prevSettings,
                 [currentSensor]: {
                   ...prevSettings[currentSensor],
-                  sensorName: e.target.value,
+                  name: e.target.value,
                 },
               }))
             }
@@ -228,8 +226,8 @@ const Channels = () => {
             <SingleChart
               sensorTemps={sensorTemps}
               currentSensor={currentSensor}
-              m={m}
-              c={c}
+              m={sensorSettings[currentSensor]?.m}
+              c={sensorSettings[currentSensor]?.c}
             />
           </Box>
           <Typography variant='h6'>Linear Calibration</Typography>
